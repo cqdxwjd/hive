@@ -132,6 +132,36 @@
         </plugins>
       </build>
     </profile>
+    <profile>
+      <id>docker</id>
+      <build>
+        <plugins>
+          <plugin>
+            <groupId>org.codehaus.mojo</groupId>
+            <artifactId>exec-maven-plugin</artifactId>
+            <executions>
+              <execution>
+                <phase>package</phase>
+                <goals>
+                  <goal>exec</goal>
+                </goals>
+              </execution>
+            </executions>
+            <configuration>
+              <executable>bash</executable>
+              <environmentVariables>
+                <SOURCE_DIR>${hive.path.to.root}</SOURCE_DIR>
+              </environmentVariables>
+              <arguments>
+                <argument>src/docker/build.sh</argument>
+                <argument>-hadoop ${hadoop.version}</argument>
+                <argument>-tez ${tez.version}</argument>
+              </arguments>
+            </configuration>
+          </plugin>
+        </plugins>
+      </build>
+    </profile>
   </profiles>
 
 
