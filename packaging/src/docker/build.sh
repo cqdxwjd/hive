@@ -70,14 +70,20 @@ WORK_DIR="$(mktemp -d)"
 HADOOP_VERSION=${HADOOP_VERSION:-$(mvn -f "$SOURCE_DIR/pom.xml" -q help:evaluate -Dexpression=hadoop.version -DforceStdout)}
 TEZ_VERSION=${TEZ_VERSION:-$(mvn -f "$SOURCE_DIR/pom.xml" -q help:evaluate -Dexpression=tez.version -DforceStdout)}
 
-HADOOP_URL=${HADOOP_URL:-"https://archive.apache.org/dist/hadoop/core/hadoop-$HADOOP_VERSION/hadoop-$HADOOP_VERSION.tar.gz"}
-echo "Downloading Hadoop from $HADOOP_URL..."
-if ! curl --fail -L "$HADOOP_URL" -o "$WORK_DIR/hadoop-$HADOOP_VERSION.tar.gz"; then
-  echo "Fail to download Hadoop, exiting...."
-  exit 1
+LOCAL_HADOOP_TAR="$HOME/pro/hadoop/hadoop-dist/target/hadoop-$HADOOP_VERSION.tar.gz"
+if [ -f "$LOCAL_HADOOP_TAR" ]; then
+    echo "Copying Hadoop from local file: $LOCAL_HADOOP_TAR..."
+    cp "$LOCAL_HADOOP_TAR" "$WORK_DIR/hadoop-$HADOOP_VERSION.tar.gz"
+else
+  HADOOP_URL=${HADOOP_URL:-"http://hmfrepo:8084/hmf/hadoop/common/hadoop-$HADOOP_VERSION/hadoop-$HADOOP_VERSION.tar.gz"}
+  echo "Downloading Hadoop from $HADOOP_URL..."
+  if ! curl --fail -L "$HADOOP_URL" -o "$WORK_DIR/hadoop-$HADOOP_VERSION.tar.gz"; then
+    echo "Fail to download Hadoop, exiting...."
+    exit 1
+  fi
 fi
 
-TEZ_URL=${TEZ_URL:-"https://archive.apache.org/dist/tez/$TEZ_VERSION/apache-tez-$TEZ_VERSION-bin.tar.gz"}
+TEZ_URL=${TEZ_URL:-"http://hmfrepo:8084/hmf/tez/$TEZ_VERSION/apache-tez-$TEZ_VERSION-bin.tar.gz"}
 echo "Downloading Tez from $TEZ_URL..."
 if ! curl --fail -L "$TEZ_URL" -o "$WORK_DIR/apache-tez-$TEZ_VERSION-bin.tar.gz"; then
   echo "Failed to download Tez, exiting..."
@@ -106,13 +112,26 @@ fi
 cp -R "$SOURCE_DIR/packaging/src/docker/conf" "$WORK_DIR/"
 cp -R "$SOURCE_DIR/packaging/src/docker/entrypoint.sh" "$WORK_DIR/"
 cp    "$SOURCE_DIR/packaging/src/docker/Dockerfile" "$WORK_DIR/"
-docker build \
-        "$WORK_DIR" \
-        -f "$WORK_DIR/Dockerfile" \
-        -t "$repo/hive:$HIVE_VERSION" \
-        --build-arg "BUILD_ENV=unarchive" \
-        --build-arg "HIVE_VERSION=$HIVE_VERSION" \
-        --build-arg "HADOOP_VERSION=$HADOOP_VERSION" \
-        --build-arg "TEZ_VERSION=$TEZ_VERSION" \
+CPU_ARCH=$(echo "$MACHTYPE" | cut -d- -f1)
+if [[ "$CPU_ARCH" = "aarch64" || "$CPU_ARCH" = "arm64" ]]; then
+    docker buildx build \
+            "$WORK_DIR" \
+            -f "$WORK_DIR/Dockerfile" \
+            -t "$repo/hive:$HIVE_VERSION" \
+            --build-arg "BUILD_ENV=unarchive" \
+            --build-arg "HIVE_VERSION=$HIVE_VERSION" \
+            --build-arg "HADOOP_VERSION=$HADOOP_VERSION" \
+            --build-arg "TEZ_VERSION=$TEZ_VERSION" \
+            --platform linux/amd64
+else
+    docker build \
+            "$WORK_DIR" \
+            -f "$WORK_DIR/Dockerfile" \
+            -t "$repo/hive:$HIVE_VERSION" \
+            --build-arg "BUILD_ENV=unarchive" \
+            --build-arg "HIVE_VERSION=$HIVE_VERSION" \
+            --build-arg "HADOOP_VERSION=$HADOOP_VERSION" \
+            --build-arg "TEZ_VERSION=$TEZ_VERSION"
+fi
 
 rm -r "${WORK_DIR}"

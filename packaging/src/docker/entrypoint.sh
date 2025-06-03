@@ -53,7 +53,7 @@ if [[ "${SKIP_SCHEMA_INIT}" == "false" ]]; then
 fi
 
 if [ "${SERVICE_NAME}" == "hiveserver2" ]; then
-  export HADOOP_CLASSPATH=$TEZ_HOME/*:$TEZ_HOME/lib/*:$HADOOP_CLASSPATH
+  export HADOOP_CLASSPATH=$TEZ_HOME/*:$TEZ_HOME/lib/*:$HADOOP_HOME/share/hadoop/tools/lib/*:$HADOOP_CLASSPATH
   exec $HIVE_HOME/bin/hive --skiphadoopversion --skiphbasecp --service $SERVICE_NAME
 elif [ "${SERVICE_NAME}" == "metastore" ]; then
   export METASTORE_PORT=${METASTORE_PORT:-9083}
