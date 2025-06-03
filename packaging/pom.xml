@@ -455,5 +455,10 @@
       <artifactId>hive-kudu-handler</artifactId>
       <version>${project.version}</version>
     </dependency>
+    <dependency>
+      <groupId>org.postgresql</groupId>
+      <artifactId>postgresql</artifactId>
+      <version>${postgres.version}</version>
+    </dependency>
   </dependencies>
 </project>
